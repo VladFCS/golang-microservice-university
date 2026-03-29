@@ -69,8 +69,13 @@ jobs:
         uses: sigstore/cosign-installer@v3
 
       - name: Generate SBOM
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
         run: |
           docker run --rm \
+            -e TRIVY_USERNAME \
+            -e TRIVY_PASSWORD \
             -v "$PWD:/workdir" \
             aquasec/trivy:0.69.3 \
             image \
