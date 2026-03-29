@@ -6,6 +6,21 @@ This repository contains a small production-style microservices system built wit
 - `catalog-service`: product catalog with in-memory storage.
 - `inventory-service`: stock service with in-memory storage.
 
+## Repo overview
+
+| Name | Port(s) | Entrypoint | Dockerfile | Path | Dependencies |
+| --- | --- | --- | --- | --- | --- |
+| `gateway-service` | `8080` HTTP | `cmd/gateway-service/main.go` | `deployments/docker/gateway-service.Dockerfile` | `internal/gateway` | `catalog-service:50051`, `inventory-service:50052` |
+| `catalog-service` | `50051` gRPC, `8081` health | `cmd/catalog-service/main.go` | `deployments/docker/catalog-service.Dockerfile` | `internal/catalog` | none |
+| `inventory-service` | `50052` gRPC, `8082` health | `cmd/inventory-service/main.go` | `deployments/docker/inventory-service.Dockerfile` | `internal/inventory` | none |
+
+Container baseline for every service:
+
+- multi-stage Docker build
+- distroless final image
+- non-root runtime with `USER 10001:10001`
+- `/healthz` endpoint ready for Kubernetes probes
+
 ## Architecture
 
 ```text
