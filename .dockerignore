@@ -1,6 +1,8 @@
 .git
-.DS_Store
+.github
+.idea
+.vscode
 bin
 dist
 tmp
-*.log
+coverage.out

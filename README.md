@@ -69,6 +69,12 @@ make run-inventory
 make run-gateway
 ```
 
+Health endpoints:
+
+- `gateway-service`: `http://localhost:8080/healthz`
+- `catalog-service`: `http://localhost:8081/healthz`
+- `inventory-service`: `http://localhost:8082/healthz`
+
 Fetch aggregated data:
 
 ```bash
@@ -142,7 +148,7 @@ make test
 Build images:
 
 ```bash
-make docker-build
+make docker-build IMAGE_TAG=dev
 ```
 
 Dockerfiles:
@@ -150,3 +156,27 @@ Dockerfiles:
 - `deployments/docker/gateway-service.Dockerfile`
 - `deployments/docker/catalog-service.Dockerfile`
 - `deployments/docker/inventory-service.Dockerfile`
+
+Why this container setup is a good baseline for Kubernetes:
+
+- Multi-stage builds keep the runtime image small and avoid shipping the Go toolchain.
+- Distroless runtime images reduce attack surface because they do not include a shell or package manager.
+- Containers run as `USER 10001:10001`, which fits common `runAsNonRoot` Kubernetes policies.
+- Each service exposes `/healthz`, which can be reused later for readiness and liveness probes.
+
+Published image strategy:
+
+- Registry: GHCR (`ghcr.io`)
+- Mutable convenience tags like `latest` are intentionally not used.
+- Main branch pushes publish `sha-<commit>` tags.
+- Git tags like `v1.0.0` publish matching semver image tags.
+
+GitHub Actions workflow:
+
+- `.github/workflows/publish-images.yml`
+
+Example image names:
+
+- `ghcr.io/<owner>/<repo>-gateway-service:sha-abc1234`
+- `ghcr.io/<owner>/<repo>-catalog-service:v1.0.0`
+- `ghcr.io/<owner>/<repo>-inventory-service:sha-abc1234`

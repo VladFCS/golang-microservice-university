@@ -9,11 +9,13 @@ COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/gateway-service ./cmd/gateway-service
 
-FROM gcr.io/distroless/static-debian12:nonroot
+FROM gcr.io/distroless/static-debian12
 
 WORKDIR /app
 
-COPY --from=builder /out/gateway-service /app/gateway-service
+COPY --from=builder --chown=10001:10001 /out/gateway-service /app/gateway-service
+
+USER 10001:10001
 
 EXPOSE 8080
 

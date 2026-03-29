@@ -1,6 +1,8 @@
 MODULE := github.com/vlad/microservices-grpc-kubernetes
 PROTO_FILES := api/proto/catalog/v1/catalog.proto api/proto/inventory/v1/inventory.proto
 GOBIN := $(shell go env GOPATH)/bin
+IMAGE_TAG ?= dev
+GHCR_NAMESPACE ?= ghcr.io/vladfcs
 
 .PHONY: proto tidy build test run-gateway run-catalog run-inventory docker-build
 
@@ -34,6 +36,6 @@ run-inventory:
 	go run ./cmd/inventory-service
 
 docker-build:
-	docker build -f deployments/docker/gateway-service.Dockerfile -t gateway-service:latest .
-	docker build -f deployments/docker/catalog-service.Dockerfile -t catalog-service:latest .
-	docker build -f deployments/docker/inventory-service.Dockerfile -t inventory-service:latest .
+	docker build -f deployments/docker/gateway-service.Dockerfile -t $(GHCR_NAMESPACE)/gateway-service:$(IMAGE_TAG) .
+	docker build -f deployments/docker/catalog-service.Dockerfile -t $(GHCR_NAMESPACE)/catalog-service:$(IMAGE_TAG) .
+	docker build -f deployments/docker/inventory-service.Dockerfile -t $(GHCR_NAMESPACE)/inventory-service:$(IMAGE_TAG) .

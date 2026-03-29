@@ -4,9 +4,11 @@ import (
 	"context"
 	"log/slog"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	inventoryv1 "github.com/vlad/microservices-grpc-kubernetes/gen/inventory/v1"
 	"github.com/vlad/microservices-grpc-kubernetes/internal/inventory/domain"
@@ -14,6 +16,7 @@ import (
 	"github.com/vlad/microservices-grpc-kubernetes/internal/inventory/repository"
 	"github.com/vlad/microservices-grpc-kubernetes/internal/inventory/service"
 	grpcplatform "github.com/vlad/microservices-grpc-kubernetes/internal/platform/grpcutil"
+	"github.com/vlad/microservices-grpc-kubernetes/internal/platform/health"
 	"github.com/vlad/microservices-grpc-kubernetes/internal/platform/logger"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -22,6 +25,7 @@ import (
 func main() {
 	log := logger.New("inventory-service")
 	grpcPort := getenv("GRPC_PORT", "50052")
+	healthPort := getenv("HEALTH_PORT", "8082")
 
 	lis, err := net.Listen("tcp", ":"+grpcPort)
 	if err != nil {
@@ -42,20 +46,55 @@ func main() {
 	inventoryv1.RegisterInventoryServiceServer(server, grpcHandler)
 	reflection.Register(server)
 
+	healthServer := &http.Server{
+		Addr:              ":" + healthPort,
+		Handler:           health.Handler("inventory-service"),
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
 	go func() {
-		log.Info("inventory-service started", slog.String("grpc_port", grpcPort))
-		if serveErr := server.Serve(lis); serveErr != nil {
+		log.Info("inventory-service started",
+			slog.String("grpc_port", grpcPort),
+			slog.String("health_port", healthPort),
+		)
+		if serveErr := server.Serve(lis); serveErr != nil && ctx.Err() == nil {
 			log.Error("grpc server stopped with error", slog.Any("error", serveErr))
+			stop()
+		}
+	}()
+
+	go func() {
+		if serveErr := healthServer.ListenAndServe(); serveErr != nil && serveErr != http.ErrServerClosed {
+			log.Error("health server stopped with error", slog.Any("error", serveErr))
 			stop()
 		}
 	}()
 
 	<-ctx.Done()
 	log.Info("shutting down inventory-service")
-	server.GracefulStop()
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	grpcStopped := make(chan struct{})
+	go func() {
+		server.GracefulStop()
+		close(grpcStopped)
+	}()
+
+	select {
+	case <-grpcStopped:
+	case <-shutdownCtx.Done():
+		server.Stop()
+	}
+
+	if err := healthServer.Shutdown(shutdownCtx); err != nil {
+		log.Error("failed to shutdown health server gracefully", slog.Any("error", err))
+		_ = healthServer.Close()
+	}
 }
 
 func getenv(key, fallback string) string {

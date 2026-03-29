@@ -66,3 +66,31 @@ func TestGetProductReturnsAggregatedResponse(t *testing.T) {
 		t.Fatalf("response.Inventory.Available = %d, want %d", response.Inventory.Available, 42)
 	}
 }
+
+func TestHealthzReturnsOK(t *testing.T) {
+	t.Parallel()
+
+	svc := service.New(stubCatalogRepository{}, stubInventoryRepository{}, slog.Default(), time.Second)
+	handler := NewHTTPHandler(svc, slog.Default())
+
+	router := chi.NewRouter()
+	handler.Register(router)
+
+	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusOK)
+	}
+
+	var response map[string]string
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("json.Unmarshal() error = %v", err)
+	}
+
+	if response["status"] != "ok" {
+		t.Fatalf("response[status] = %q, want %q", response["status"], "ok")
+	}
+}

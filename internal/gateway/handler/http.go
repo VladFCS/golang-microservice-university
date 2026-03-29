@@ -11,6 +11,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/vlad/microservices-grpc-kubernetes/internal/gateway/domain"
 	"github.com/vlad/microservices-grpc-kubernetes/internal/gateway/service"
+	"github.com/vlad/microservices-grpc-kubernetes/internal/platform/health"
 )
 
 type HTTPHandler struct {
@@ -26,7 +27,12 @@ func NewHTTPHandler(service *service.Service, logger *slog.Logger) *HTTPHandler 
 }
 
 func (h *HTTPHandler) Register(router chi.Router) {
+	router.Get(health.Path, h.healthz)
 	router.Get("/products/{id}", h.getProduct)
+}
+
+func (h *HTTPHandler) healthz(w http.ResponseWriter, _ *http.Request) {
+	health.WriteResponse(w, "gateway-service")
 }
 
 func (h *HTTPHandler) getProduct(w http.ResponseWriter, r *http.Request) {
