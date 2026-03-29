@@ -255,6 +255,62 @@ Kubernetes baseline included in every Deployment:
 - `allowPrivilegeEscalation: false`
 - `readOnlyRootFilesystem: true`
 
+## GitOps and ArgoCD
+
+GitOps source-of-truth for the demo environment lives in:
+
+- `deploy/gitops/demo/kustomization.yaml`
+- `deploy/gitops/demo/gateway-deployment.yaml`
+- `deploy/gitops/demo/catalog-deployment.yaml`
+- `deploy/gitops/demo/inventory-deployment.yaml`
+- `deploy/argocd/demo-application.yaml`
+
+The GitOps manifests target namespace `demo` and use GHCR image references. The publish workflow rewrites those image references to immutable digest form after a successful build, SBOM generation, signing, and attestation.
+
+Install ArgoCD locally:
+
+```bash
+make argocd-install
+```
+
+Apply the ArgoCD `Application` resource:
+
+```bash
+make argocd-app-apply
+```
+
+Useful local checks:
+
+```bash
+make argocd-status
+make argocd-admin-password
+make argocd-ui
+```
+
+The ArgoCD UI is then available at `https://localhost:8080`.
+
+Expected local flow on minikube or kind:
+
+1. `make argocd-install`
+2. `kubectl apply -f deploy/k8s/namespace.yaml`
+3. `kubectl apply --server-side -f https://github.com/kyverno/kyverno/releases/download/v1.15.2/install.yaml`
+4. `kubectl create namespace demo --dry-run=client -o yaml | kubectl apply -f -`
+5. `make kyverno-policies-apply`
+6. `make argocd-app-apply`
+7. `kubectl get applications -n argocd`
+
+Once the `microservices-demo` application becomes `Synced` and `Healthy`, ArgoCD is managing the manifests from `deploy/gitops/demo`.
+
+How CI updates GitOps automatically:
+
+1. `.github/workflows/publish-images.yml` builds and pushes service images to GHCR.
+2. The workflow signs the pushed digests with `cosign` and attaches SBOM attestations.
+3. The same workflow writes the exact published image digests back into `deploy/gitops/demo/*-deployment.yaml`.
+4. The workflow commits the updated GitOps manifests to `main`.
+5. ArgoCD detects the Git change and syncs namespace `demo`.
+
+That means `deploy/gitops/demo` is the desired deployment state, while `deploy/k8s` remains the simpler local-manual deployment path.
+
 ## Kyverno
 
 Kyverno install and policy bundle:
@@ -473,8 +529,8 @@ kubectl logs -n kyverno deploy/kyverno-admission-controller | rg 'disallow-lates
 
 Optional ArgoCD evidence:
 
-- Capture `argocd app get <app-name>` showing `Sync Status: Synced` and `Health Status: Healthy`
-- Capture the ArgoCD UI application page after a successful sync
+- Capture `kubectl get applications -n argocd` or `argocd app get microservices-demo` showing `Sync Status: Synced` and `Health Status: Healthy`
+- Capture the ArgoCD UI application page after a successful sync of `microservices-demo`
 
 ## CI
 

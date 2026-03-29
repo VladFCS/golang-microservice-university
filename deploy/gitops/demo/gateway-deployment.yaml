@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway-service
+  namespace: demo
+  labels:
+    app.kubernetes.io/name: gateway-service
+    app.kubernetes.io/component: api
+    app.kubernetes.io/part-of: microservices-grpc-kubernetes
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: gateway-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: gateway-service
+        app.kubernetes.io/component: api
+        app.kubernetes.io/part-of: microservices-grpc-kubernetes
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: gateway-service
+          image: ghcr.io/vladfcs/golang-microservice-university-gateway-service:sha-024cc36
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: HTTP_PORT
+              value: "8080"
+            - name: CATALOG_GRPC_ADDR
+              value: "catalog-service:50051"
+            - name: INVENTORY_GRPC_ADDR
+              value: "inventory-service:50052"
+            - name: DOWNSTREAM_TIMEOUT
+              value: "3s"
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+            timeoutSeconds: 2
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL

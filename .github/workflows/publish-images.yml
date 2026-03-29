@@ -6,9 +6,11 @@ on:
       - main
     tags:
       - "v*.*.*"
+    paths-ignore:
+      - "deploy/gitops/**"
 
 permissions:
-  contents: read
+  contents: write
   packages: write
   id-token: write
 
@@ -105,3 +107,58 @@ jobs:
             --type cyclonedx \
             --predicate sbom-${{ matrix.service }}.cdx.json \
             "${IMAGE_REF}"
+
+      - name: Record GitOps image reference
+        run: |
+          printf '%s\n' \
+            "ghcr.io/${{ steps.owner.outputs.value }}/${{ github.event.repository.name }}-${{ matrix.service }}@${{ steps.build.outputs.digest }}" \
+            > image-ref-${{ matrix.service }}.txt
+
+      - name: Upload GitOps image reference
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-ref-${{ matrix.service }}
+          path: image-ref-${{ matrix.service }}.txt
+          if-no-files-found: error
+
+  update-gitops:
+    name: Update GitOps Manifests
+    if: github.ref == 'refs/heads/main'
+    needs: publish
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download published image refs
+        uses: actions/download-artifact@v4
+        with:
+          pattern: image-ref-*
+          path: image-refs
+          merge-multiple: true
+
+      - name: Rewrite GitOps image references
+        run: |
+          gateway_ref="$(cat image-refs/image-ref-gateway-service.txt)"
+          catalog_ref="$(cat image-refs/image-ref-catalog-service.txt)"
+          inventory_ref="$(cat image-refs/image-ref-inventory-service.txt)"
+
+          sed -i "s#^\([[:space:]]*image: \).*gateway-service.*#\1${gateway_ref}#" deploy/gitops/demo/gateway-deployment.yaml
+          sed -i "s#^\([[:space:]]*image: \).*catalog-service.*#\1${catalog_ref}#" deploy/gitops/demo/catalog-deployment.yaml
+          sed -i "s#^\([[:space:]]*image: \).*inventory-service.*#\1${inventory_ref}#" deploy/gitops/demo/inventory-deployment.yaml
+
+      - name: Commit updated GitOps manifests
+        run: |
+          if git diff --quiet -- deploy/gitops/demo; then
+            echo "No GitOps changes to commit"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add deploy/gitops/demo
+          git commit -m "Update GitOps image refs for ${GITHUB_SHA::7}"
+          git push

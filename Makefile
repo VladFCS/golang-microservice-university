@@ -3,9 +3,9 @@ PROTO_FILES := api/proto/catalog/v1/catalog.proto api/proto/inventory/v1/invento
 GOBIN := $(shell go env GOPATH)/bin
 IMAGE_TAG ?= dev
 GHCR_NAMESPACE ?= ghcr.io/vladfcs
-KYVERNO_VERSION ?= v1.16.2
+KYVERNO_VERSION ?= v1.15.2
 
-.PHONY: proto tidy build test run-gateway run-catalog run-inventory docker-build kyverno-install kyverno-policies-apply kyverno-demo-bad-latest kyverno-demo-bad-run-as-nonroot kyverno-demo-bad-privileged kyverno-demo-bad-hostnetwork kyverno-demo-bad-hostpath kyverno-demo-bad-no-resources kyverno-demo-unsigned kyverno-demo-signed demo-unsigned demo-latest demo-privileged demo-no-limits demo-good
+.PHONY: proto tidy build test run-gateway run-catalog run-inventory docker-build kyverno-install kyverno-policies-apply kyverno-demo-bad-latest kyverno-demo-bad-run-as-nonroot kyverno-demo-bad-privileged kyverno-demo-bad-hostnetwork kyverno-demo-bad-hostpath kyverno-demo-bad-no-resources kyverno-demo-unsigned kyverno-demo-signed demo-unsigned demo-latest demo-privileged demo-no-limits demo-good argocd-install argocd-app-apply argocd-ui argocd-admin-password argocd-status
 
 proto:
 	go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.10
@@ -43,6 +43,22 @@ docker-build:
 
 kyverno-install:
 	kubectl apply -f https://github.com/kyverno/kyverno/releases/download/$(KYVERNO_VERSION)/install.yaml
+
+argocd-install:
+	bash scripts/argocd_install.sh
+
+argocd-app-apply:
+	kubectl apply -f deploy/argocd/demo-application.yaml
+
+argocd-ui:
+	kubectl port-forward svc/argocd-server -n argocd 8080:443
+
+argocd-admin-password:
+	kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
+
+argocd-status:
+	kubectl get pods -n argocd
+	kubectl get applications -n argocd
 
 kyverno-policies-apply:
 	kubectl apply -k deploy/kyverno

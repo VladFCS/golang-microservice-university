@@ -17,7 +17,7 @@ spec:
         runAsNonRoot: true
       containers:
         - name: app
-          image: ghcr.io/vladfcs/golang-microservice-university-gateway-service:sha-e98a03f
+          image: ghcr.io/vladfcs/golang-microservice-university-gateway-service:sha-024cc36
           ports:
             - containerPort: 8080
           resources:
