@@ -65,10 +65,10 @@ jobs:
         uses: sigstore/cosign-installer@v3
 
       - name: Install Trivy
-        uses: aquasecurity/setup-trivy@e6c2c5e321ed9123bda567646e2f96565e34abe1
-        with:
-          version: v0.68.1
-          cache: true
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
+            | sudo sh -s -- -b /usr/local/bin v0.68.1
+          trivy --version
 
       - name: Generate SBOM
         uses: aquasecurity/trivy-action@v0.33.1
