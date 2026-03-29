@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: demo-no-limits
-  namespace: app
+  namespace: demo
 spec:
   replicas: 1
   selector:
@@ -17,11 +17,10 @@ spec:
         runAsNonRoot: true
       containers:
         - name: app
-          image: ghcr.io/vladfcs/golang-microservice-university-gateway-service:v1.0.0
+          image: ghcr.io/vladfcs/golang-microservice-university-gateway-service:sha-e98a03f
           ports:
             - containerPort: 8080
           securityContext:
             runAsNonRoot: true
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
-

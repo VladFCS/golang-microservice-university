@@ -18,7 +18,7 @@ spec:
               kinds:
                 - Pod
               namespaces:
-                - app
+                - demo
       verifyImages:
         - imageReferences:
             - "ghcr.io/vladfcs/golang-microservice-university-*"

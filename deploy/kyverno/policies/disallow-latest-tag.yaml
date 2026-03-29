@@ -18,7 +18,7 @@ spec:
               kinds:
                 - Pod
               namespaces:
-                - app
+                - demo
       validate:
         failureAction: Enforce
         message: "Using a mutable image tag like ':latest' is not allowed."

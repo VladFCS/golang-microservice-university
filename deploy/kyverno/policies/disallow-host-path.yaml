@@ -18,7 +18,7 @@ spec:
               kinds:
                 - Pod
               namespaces:
-                - app
+                - demo
       validate:
         failureAction: Enforce
         message: "HostPath volumes are forbidden."

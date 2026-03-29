@@ -18,7 +18,7 @@ spec:
               kinds:
                 - Pod
               namespaces:
-                - app
+                - demo
       validate:
         failureAction: Enforce
         message: "Running as root is not allowed. Set runAsNonRoot=true at pod or container level."

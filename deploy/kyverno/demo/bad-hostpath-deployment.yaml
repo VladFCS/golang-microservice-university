@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: bad-hostpath-demo
-  namespace: app
+  namespace: demo
 spec:
   replicas: 1
   selector:
@@ -22,7 +22,7 @@ spec:
             type: Directory
       containers:
         - name: app
-          image: ghcr.io/vladfcs/golang-microservice-university-gateway-service:v1.0.0
+          image: ghcr.io/vladfcs/golang-microservice-university-gateway-service:sha-e98a03f
           ports:
             - containerPort: 8080
           volumeMounts:
@@ -39,4 +39,3 @@ spec:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             runAsNonRoot: true
-

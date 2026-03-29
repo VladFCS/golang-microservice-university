@@ -27,7 +27,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: catalog-service
-          image: ghcr.io/vladfcs/golang-microservice-university-catalog-service:v1.0.0
+          image: ghcr.io/vladfcs/golang-microservice-university-catalog-service:local
           imagePullPolicy: IfNotPresent
           env:
             - name: GRPC_PORT
