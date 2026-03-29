@@ -27,7 +27,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: inventory-service
-          image: ghcr.io/vladfcs/golang-microservice-university-inventory-service@sha256:24385c500d7fdd6bee9debc8867fa08291323d87c66a5838fc1c7db48d1a3f61
+          image: ghcr.io/vladfcs/golang-microservice-university-inventory-service@sha256:99ccfda21498a63b8727082068c43975b0792bca9332d8d137c7e27557296025
           imagePullPolicy: IfNotPresent
           env:
             - name: GRPC_PORT
