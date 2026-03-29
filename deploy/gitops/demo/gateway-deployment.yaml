@@ -27,7 +27,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: gateway-service
-          image: ghcr.io/vladfcs/golang-microservice-university-gateway-service@sha256:904ee31b8e17aa8e2931e57afc9b8c9310c80337121b96a92c59b5a67e35b0c1
+          image: ghcr.io/vladfcs/golang-microservice-university-gateway-service@sha256:d54aec8226a08c6943108f0d07bbd0a4ba31b514f30b28ac0bb9ece6455199bf
           imagePullPolicy: IfNotPresent
           env:
             - name: HTTP_PORT
