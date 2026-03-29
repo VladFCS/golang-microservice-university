@@ -8,7 +8,6 @@ metadata:
     policies.kyverno.io/severity: medium
     policies.kyverno.io/subject: Pod,Volume
 spec:
-  validationFailureAction: Enforce
   background: false
   webhookTimeoutSeconds: 30
   rules:
@@ -21,9 +20,9 @@ spec:
               namespaces:
                 - app
       validate:
+        failureAction: Enforce
         message: "HostPath volumes are forbidden."
         pattern:
           spec:
             "=(volumes)":
               - X(hostPath): "null"
-

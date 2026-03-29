@@ -21,7 +21,7 @@ spec:
                 - app
       verifyImages:
         - imageReferences:
-            - "*"
+            - "ghcr.io/vladfcs/golang-microservice-university-*"
           failureAction: Enforce
           mutateDigest: true
           verifyDigest: true
@@ -29,7 +29,7 @@ spec:
             - count: 1
               entries:
                 - keyless:
-                    subjectRegExp: "^https://github\\.com/VladFCS/golang-microservice-university/\\.github/workflows/publish-images\\.yml@refs/(heads/main|tags/v.+)$"
+                    subject: "https://github.com/VladFCS/golang-microservice-university/.github/workflows/publish-images.yml@refs/*"
                     issuer: "https://token.actions.githubusercontent.com"
                     additionalExtensions:
                       githubWorkflowTrigger: push
@@ -37,4 +37,3 @@ spec:
                       githubWorkflowRepository: VladFCS/golang-microservice-university
                     rekor:
                       url: https://rekor.sigstore.dev
-

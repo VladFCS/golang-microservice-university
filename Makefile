@@ -5,7 +5,7 @@ IMAGE_TAG ?= dev
 GHCR_NAMESPACE ?= ghcr.io/vladfcs
 KYVERNO_VERSION ?= v1.16.2
 
-.PHONY: proto tidy build test run-gateway run-catalog run-inventory docker-build kyverno-install kyverno-policies-apply kyverno-demo-bad-latest kyverno-demo-bad-run-as-nonroot kyverno-demo-bad-privileged kyverno-demo-bad-hostnetwork kyverno-demo-bad-hostpath kyverno-demo-bad-no-resources kyverno-demo-unsigned kyverno-demo-signed
+.PHONY: proto tidy build test run-gateway run-catalog run-inventory docker-build kyverno-install kyverno-policies-apply kyverno-demo-bad-latest kyverno-demo-bad-run-as-nonroot kyverno-demo-bad-privileged kyverno-demo-bad-hostnetwork kyverno-demo-bad-hostpath kyverno-demo-bad-no-resources kyverno-demo-unsigned kyverno-demo-signed demo-unsigned demo-latest demo-privileged demo-no-limits demo-good
 
 proto:
 	go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.10
@@ -70,3 +70,18 @@ kyverno-demo-unsigned:
 
 kyverno-demo-signed:
 	kubectl apply -f deploy/kyverno/demo/signed-image-deployment.yaml
+
+demo-unsigned:
+	kubectl apply -f demo/unsigned.yaml
+
+demo-latest:
+	kubectl apply -f demo/latest.yaml
+
+demo-privileged:
+	kubectl apply -f demo/privileged.yaml
+
+demo-no-limits:
+	kubectl apply -f demo/no-limits.yaml
+
+demo-good:
+	kubectl apply -f demo/good.yaml

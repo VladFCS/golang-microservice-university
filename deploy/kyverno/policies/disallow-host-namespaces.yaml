@@ -8,7 +8,6 @@ metadata:
     policies.kyverno.io/severity: medium
     policies.kyverno.io/subject: Pod
 spec:
-  validationFailureAction: Enforce
   background: false
   webhookTimeoutSeconds: 30
   rules:
@@ -21,10 +20,10 @@ spec:
               namespaces:
                 - app
       validate:
+        failureAction: Enforce
         message: "Sharing host namespaces is disallowed. spec.hostNetwork, spec.hostIPC, and spec.hostPID must be false or unset."
         pattern:
           spec:
-            "=(hostPID)": "false"
-            "=(hostIPC)": "false"
-            "=(hostNetwork)": "false"
-
+            "=(hostPID)": false
+            "=(hostIPC)": false
+            "=(hostNetwork)": false

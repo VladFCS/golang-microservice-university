@@ -334,6 +334,148 @@ policy=verify-signed-images rule=verify-signed-images resource=app/signed-image-
 
 For the signed-image demo, replace `ghcr.io/vladfcs/golang-microservice-university-gateway-service:v1.0.0` with any image tag that has already been published and signed by the `Publish Docker Images` workflow if your registry does not yet contain `v1.0.0`.
 
+## Demo
+
+Diploma demo manifests live in `demo/`:
+
+- `demo/unsigned.yaml`
+- `demo/latest.yaml`
+- `demo/privileged.yaml`
+- `demo/no-limits.yaml`
+- `demo/good.yaml`
+
+Demo apply commands:
+
+```bash
+kubectl apply -f demo/unsigned.yaml
+kubectl apply -f demo/latest.yaml
+kubectl apply -f demo/privileged.yaml
+kubectl apply -f demo/no-limits.yaml
+kubectl apply -f demo/good.yaml
+```
+
+Equivalent Make targets:
+
+```bash
+make demo-unsigned
+make demo-latest
+make demo-privileged
+make demo-no-limits
+make demo-good
+```
+
+The `good.yaml` manifest is expected to be allowed only if the referenced image tag has already been pushed, signed, and attested by the `Publish Docker Images` workflow.
+
+## Evidence
+
+This section is intended as the evidence checklist for the diploma defense. Some items below are sample or expected outputs prepared from the configured workflows and policies; capture screenshots from your own GitHub Actions runs and cluster session to turn them into final evidence.
+
+CI failures to capture:
+
+- PR pipeline failed on `gitleaks`, `gosec`, `govulncheck`, or Trivy in `.github/workflows/pr-ci.yml`
+- Security gate example from Trivy:
+
+```text
+Run aquasecurity/trivy-action
+...
+Total: 1 (HIGH: 1, CRITICAL: 0)
+Error: Process completed with exit code 1.
+```
+
+- Secret scanning gate example from gitleaks:
+
+```text
+Finding:     "AWS_SECRET_ACCESS_KEY=..."
+Secret:      AWS_SECRET_ACCESS_KEY
+RuleID:      aws-access-token
+Entropy:     4.92
+File:        .env
+Error: Process completed with exit code 1.
+```
+
+SBOM artifact example:
+
+- PR pipeline uploads `sbom-gateway-service`, `sbom-catalog-service`, and `sbom-inventory-service`
+- Publish pipeline uploads `published-sbom-gateway-service`, `published-sbom-catalog-service`, and `published-sbom-inventory-service`
+- Example CycloneDX fragment:
+
+```json
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "container",
+      "name": "ghcr.io/vladfcs/golang-microservice-university-gateway-service"
+    }
+  }
+}
+```
+
+Cosign verify evidence:
+
+```bash
+cosign verify ghcr.io/vladfcs/golang-microservice-university-gateway-service:sha-<git-sha> \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  --certificate-identity-regexp 'https://github.com/VladFCS/golang-microservice-university/.github/workflows/publish-images.yml@refs/heads/main'
+```
+
+Representative successful output:
+
+```text
+Verification for ghcr.io/vladfcs/golang-microservice-university-gateway-service:sha-<git-sha> --
+The following checks were performed on each of these signatures:
+  - The cosign claims were validated
+  - Existence of the claims in the transparency log was verified offline
+  - The code-signing certificate was verified using trusted certificate authority certificates
+```
+
+Kyverno reject messages to capture:
+
+- `demo/latest.yaml` should be rejected by `disallow-latest-tag`
+- `demo/privileged.yaml` should be rejected by `disallow-privileged-containers`
+- `demo/no-limits.yaml` should be rejected by `require-requests-limits`
+- `demo/unsigned.yaml` should be rejected by `verify-signed-images`
+- `demo/good.yaml` should be allowed
+
+Representative Kyverno rejection output:
+
+```text
+Error from server: admission webhook "validate.kyverno.svc" denied the request:
+resource Deployment/app/demo-latest was blocked due to the following policies
+
+disallow-latest-tag:
+  validate-image-tag: Using a mutable image tag like ':latest' is not allowed.
+```
+
+Representative unsigned-image rejection output:
+
+```text
+Error from server: admission webhook "mutate.kyverno.svc" denied the request:
+resource Deployment/app/demo-unsigned was blocked due to the following policies
+
+verify-signed-images:
+  verify-signed-images: image verification failed for nginx:1.27.4: signature not found
+```
+
+Representative allowed deployment output:
+
+```text
+deployment.apps/demo-good created
+```
+
+Kyverno logs to capture:
+
+```bash
+kubectl logs -n kyverno deploy/kyverno-admission-controller | rg 'disallow-latest-tag|require-requests-limits|verify-signed-images'
+```
+
+Optional ArgoCD evidence:
+
+- Capture `argocd app get <app-name>` showing `Sync Status: Synced` and `Health Status: Healthy`
+- Capture the ArgoCD UI application page after a successful sync
+
 ## CI
 
 GitHub Actions is used for CI/CD in this repository:

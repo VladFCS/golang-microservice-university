@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-latest
+  namespace: app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo-latest
+  template:
+    metadata:
+      labels:
+        app: demo-latest
+    spec:
+      securityContext:
+        runAsNonRoot: true
+      containers:
+        - name: app
+          image: ghcr.io/vladfcs/golang-microservice-university-gateway-service:latest
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+
