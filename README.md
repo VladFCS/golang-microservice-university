@@ -8,11 +8,11 @@ This repository contains a small production-style microservices system built wit
 
 ## Repo overview
 
-| Name | Port(s) | Entrypoint | Dockerfile | Path | Dependencies |
-| --- | --- | --- | --- | --- | --- |
-| `gateway-service` | `8080` HTTP | `cmd/gateway-service/main.go` | `deployments/docker/gateway-service.Dockerfile` | `internal/gateway` | `catalog-service:50051`, `inventory-service:50052` |
-| `catalog-service` | `50051` gRPC, `8081` health | `cmd/catalog-service/main.go` | `deployments/docker/catalog-service.Dockerfile` | `internal/catalog` | none |
-| `inventory-service` | `50052` gRPC, `8082` health | `cmd/inventory-service/main.go` | `deployments/docker/inventory-service.Dockerfile` | `internal/inventory` | none |
+| Name | Path | Port(s) | Entrypoint | Dockerfile | Image Name | Dependencies |
+| --- | --- | --- | --- | --- | --- | --- |
+| `gateway-service` | `internal/gateway` | `8080` HTTP | `cmd/gateway-service/main.go` | `deployments/docker/gateway-service.Dockerfile` | `ghcr.io/vladfcs/golang-microservice-university-gateway-service` | `catalog-service:50051`, `inventory-service:50052` |
+| `catalog-service` | `internal/catalog` | `50051` gRPC, `8081` health | `cmd/catalog-service/main.go` | `deployments/docker/catalog-service.Dockerfile` | `ghcr.io/vladfcs/golang-microservice-university-catalog-service` | none |
+| `inventory-service` | `internal/inventory` | `50052` gRPC, `8082` health | `cmd/inventory-service/main.go` | `deployments/docker/inventory-service.Dockerfile` | `ghcr.io/vladfcs/golang-microservice-university-inventory-service` | none |
 
 Container baseline for every service:
 
@@ -37,6 +37,22 @@ Each service follows a simple clean architecture flow:
 
 ```text
 handler -> service -> repository
+```
+
+## End-to-End Flow
+
+```mermaid
+flowchart LR
+  Dev[Developer Push / PR] --> CI[GitHub Actions CI]
+  CI --> Registry[GHCR Images]
+  CI --> SBOM[SBOM + Cosign Signature + Attestation]
+  Registry --> GitOps[deploy/gitops/demo]
+  CI --> GitOps
+  GitOps --> ArgoCD[ArgoCD Sync]
+  ArgoCD --> K8s[Kubernetes Namespace demo]
+  K8s --> Kyverno[Kyverno Admission Policies]
+  Kyverno -->|allow| Running[Running Pods]
+  Kyverno -->|reject| Rejected[Rejected Deployments]
 ```
 
 ## Project layout
@@ -287,17 +303,18 @@ make argocd-admin-password
 make argocd-ui
 ```
 
-The ArgoCD UI is then available at `https://localhost:8080`.
+The `make argocd-ui` target forwards the ArgoCD UI to `https://localhost:8088`.
 
 Expected local flow on minikube or kind:
 
-1. `make argocd-install`
-2. `kubectl apply -f deploy/k8s/namespace.yaml`
-3. `kubectl apply --server-side -f https://github.com/kyverno/kyverno/releases/download/v1.15.2/install.yaml`
-4. `kubectl create namespace demo --dry-run=client -o yaml | kubectl apply -f -`
-5. `make kyverno-policies-apply`
-6. `make argocd-app-apply`
-7. `kubectl get applications -n argocd`
+1. `make minikube-up`
+2. `make deploy`
+3. `make argocd-install`
+4. `kubectl apply --server-side -f https://github.com/kyverno/kyverno/releases/download/v1.15.2/install.yaml`
+5. `kubectl create namespace demo --dry-run=client -o yaml | kubectl apply -f -`
+6. `make kyverno-policies-apply`
+7. `make argocd-app-apply`
+8. `kubectl get applications -n argocd`
 
 Once the `microservices-demo` application becomes `Synced` and `Healthy`, ArgoCD is managing the manifests from `deploy/gitops/demo`.
 
@@ -397,6 +414,7 @@ Diploma demo manifests live in `demo/`:
 - `demo/unsigned.yaml`
 - `demo/latest.yaml`
 - `demo/privileged.yaml`
+- `demo/hostnetwork.yaml`
 - `demo/no-limits.yaml`
 - `demo/good.yaml`
 
@@ -406,6 +424,7 @@ Demo apply commands:
 kubectl apply -f demo/unsigned.yaml
 kubectl apply -f demo/latest.yaml
 kubectl apply -f demo/privileged.yaml
+kubectl apply -f demo/hostnetwork.yaml
 kubectl apply -f demo/no-limits.yaml
 kubectl apply -f demo/good.yaml
 ```
@@ -416,6 +435,7 @@ Equivalent Make targets:
 make demo-unsigned
 make demo-latest
 make demo-privileged
+make demo-hostnetwork
 make demo-no-limits
 make demo-good
 ```
@@ -491,6 +511,7 @@ Kyverno reject messages to capture:
 
 - `demo/latest.yaml` should be rejected by `disallow-latest-tag`
 - `demo/privileged.yaml` should be rejected by `disallow-privileged-containers`
+- `demo/hostnetwork.yaml` should be rejected by `disallow-host-namespaces`
 - `demo/no-limits.yaml` should be rejected by `require-requests-limits`
 - `demo/unsigned.yaml` should be rejected by `verify-signed-images`
 - `demo/good.yaml` should be allowed
