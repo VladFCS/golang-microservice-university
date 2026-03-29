@@ -195,3 +195,31 @@ Example image names:
 - `ghcr.io/<owner>/<repo>-gateway-service:sha-abc1234`
 - `ghcr.io/<owner>/<repo>-catalog-service:v1.0.0`
 - `ghcr.io/<owner>/<repo>-inventory-service:sha-abc1234`
+
+## Kubernetes
+
+Minimal manifests for a local cluster live in:
+
+- `deploy/k8s/namespace.yaml`
+- `deploy/k8s/gateway-deployment.yaml`
+- `deploy/k8s/gateway-service.yaml`
+- `deploy/k8s/catalog-deployment.yaml`
+- `deploy/k8s/catalog-service.yaml`
+- `deploy/k8s/inventory-deployment.yaml`
+- `deploy/k8s/inventory-service.yaml`
+- `deploy/k8s/kustomization.yaml`
+
+Apply them with:
+
+```bash
+kubectl apply -k deploy/k8s
+```
+
+Kubernetes baseline included in every Deployment:
+
+- consistent `app.kubernetes.io/*` labels and selectors
+- readiness and liveness probes
+- CPU and memory requests/limits
+- `runAsNonRoot: true`
+- `allowPrivilegeEscalation: false`
+- `readOnlyRootFilesystem: true`
