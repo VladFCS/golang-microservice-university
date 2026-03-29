@@ -141,7 +141,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Generate SBOM
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.33.1
         with:
           scan-type: image
           image-ref: local/${{ matrix.service }}:${{ github.sha }}
@@ -157,7 +157,7 @@ jobs:
           if-no-files-found: error
 
       - name: Scan image for HIGH/CRITICAL vulnerabilities
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.33.1
         with:
           scan-type: image
           image-ref: local/${{ matrix.service }}:${{ github.sha }}

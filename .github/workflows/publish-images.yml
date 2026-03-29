@@ -65,7 +65,7 @@ jobs:
         uses: sigstore/cosign-installer@v3
 
       - name: Generate SBOM
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.33.1
         with:
           scan-type: image
           image-ref: ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}-${{ matrix.service }}@${{ steps.build.outputs.digest }}
