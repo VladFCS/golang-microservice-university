@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bad-hostpath-demo
+  namespace: app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bad-hostpath-demo
+  template:
+    metadata:
+      labels:
+        app: bad-hostpath-demo
+    spec:
+      securityContext:
+        runAsNonRoot: true
+      volumes:
+        - name: host-data
+          hostPath:
+            path: /tmp
+            type: Directory
+      containers:
+        - name: app
+          image: ghcr.io/vladfcs/golang-microservice-university-gateway-service:v1.0.0
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: host-data
+              mountPath: /data
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+

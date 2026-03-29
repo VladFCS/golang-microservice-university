@@ -185,6 +185,8 @@ Published image strategy:
 - Mutable convenience tags like `latest` are intentionally not used.
 - Main branch pushes publish `sha-<commit>` tags.
 - Git tags like `v1.0.0` publish matching semver image tags.
+- Every pushed image is signed keylessly with `cosign` via GitHub OIDC.
+- A CycloneDX SBOM is generated and attached to the pushed image as a `cosign` attestation.
 
 GitHub Actions workflow:
 
@@ -195,6 +197,35 @@ Example image names:
 - `ghcr.io/<owner>/<repo>-gateway-service:sha-abc1234`
 - `ghcr.io/<owner>/<repo>-catalog-service:v1.0.0`
 - `ghcr.io/<owner>/<repo>-inventory-service:sha-abc1234`
+
+Verify a signed image from the `main` branch:
+
+```bash
+cosign verify ghcr.io/vladfcs/golang-microservice-university-gateway-service:sha-<git-sha> \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  --certificate-identity-regexp 'https://github.com/VladFCS/golang-microservice-university/.github/workflows/publish-images.yml@refs/heads/main'
+```
+
+Successful verification should end with exit code `0` and output showing that the signature and GitHub Actions certificate identity were verified for `publish-images.yml`.
+
+Verify the SBOM attestation:
+
+```bash
+cosign verify-attestation ghcr.io/vladfcs/golang-microservice-university-gateway-service:sha-<git-sha> \
+  --type cyclonedx \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  --certificate-identity-regexp 'https://github.com/VladFCS/golang-microservice-university/.github/workflows/publish-images.yml@refs/heads/main'
+```
+
+Inspect the attached SBOM predicate after verification:
+
+```bash
+cosign verify-attestation ghcr.io/vladfcs/golang-microservice-university-gateway-service:sha-<git-sha> \
+  --type cyclonedx \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  --certificate-identity-regexp 'https://github.com/VladFCS/golang-microservice-university/.github/workflows/publish-images.yml@refs/heads/main' \
+| jq -r '.[0].payload' | base64 --decode | jq
+```
 
 ## Kubernetes
 
@@ -223,6 +254,85 @@ Kubernetes baseline included in every Deployment:
 - `runAsNonRoot: true`
 - `allowPrivilegeEscalation: false`
 - `readOnlyRootFilesystem: true`
+
+## Kyverno
+
+Kyverno install and policy bundle:
+
+- Install Kyverno with `make kyverno-install`
+- Apply the admission policies with `make kyverno-policies-apply`
+- Policies live in `deploy/kyverno/policies`
+- Demo manifests live in `deploy/kyverno/demo`
+
+Installed policy set:
+
+- deny `:latest` tags
+- require `runAsNonRoot`
+- deny `privileged: true`
+- deny `hostNetwork: true`
+- deny `hostPath` volumes
+- require CPU/memory requests and limits
+- deny unsigned images and allow images signed by `.github/workflows/publish-images.yml`
+
+Demo commands:
+
+```bash
+make kyverno-install
+kubectl apply -f deploy/k8s/namespace.yaml
+make kyverno-policies-apply
+make kyverno-demo-bad-latest
+make kyverno-demo-bad-run-as-nonroot
+make kyverno-demo-bad-privileged
+make kyverno-demo-bad-hostnetwork
+make kyverno-demo-bad-hostpath
+make kyverno-demo-bad-no-resources
+make kyverno-demo-unsigned
+make kyverno-demo-signed
+```
+
+Unsigned image reject scenario:
+
+```bash
+kubectl apply -f deploy/kyverno/demo/unsigned-image-deployment.yaml
+```
+
+Expected rejection example:
+
+```text
+Error from server: admission webhook "mutate.kyverno.svc" denied the request:
+resource Deployment/app/unsigned-image-demo was blocked due to the following policies
+
+verify-signed-images:
+  verify-signed-images: image verification failed for nginx:1.27.4: signature not found
+```
+
+Signed image allow scenario:
+
+```bash
+kubectl apply -f deploy/kyverno/demo/signed-image-deployment.yaml
+```
+
+Expected success example:
+
+```text
+deployment.apps/signed-image-demo created
+```
+
+Kyverno log commands for the two scenarios:
+
+```bash
+kubectl logs -n kyverno deploy/kyverno-admission-controller | rg 'verify-signed-images|signature not found'
+kubectl logs -n kyverno deploy/kyverno-admission-controller | rg 'signed-image-demo|verified image'
+```
+
+Example log snippets:
+
+```text
+policy=verify-signed-images rule=verify-signed-images resource=app/unsigned-image-demo result=fail message="image verification failed: signature not found"
+policy=verify-signed-images rule=verify-signed-images resource=app/signed-image-demo result=pass message="verified image signature"
+```
+
+For the signed-image demo, replace `ghcr.io/vladfcs/golang-microservice-university-gateway-service:v1.0.0` with any image tag that has already been published and signed by the `Publish Docker Images` workflow if your registry does not yet contain `v1.0.0`.
 
 ## CI
 

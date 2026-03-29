@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bad-no-resources-demo
+  namespace: app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bad-no-resources-demo
+  template:
+    metadata:
+      labels:
+        app: bad-no-resources-demo
+    spec:
+      securityContext:
+        runAsNonRoot: true
+      containers:
+        - name: app
+          image: ghcr.io/vladfcs/golang-microservice-university-gateway-service:v1.0.0
+          ports:
+            - containerPort: 8080
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+

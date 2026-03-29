@@ -1,0 +1,40 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: verify-signed-images
+  annotations:
+    policies.kyverno.io/title: Verify Signed Images
+    policies.kyverno.io/category: Supply Chain Security
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/subject: Pod
+spec:
+  background: false
+  webhookTimeoutSeconds: 30
+  rules:
+    - name: verify-signed-images
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaces:
+                - app
+      verifyImages:
+        - imageReferences:
+            - "*"
+          failureAction: Enforce
+          mutateDigest: true
+          verifyDigest: true
+          attestors:
+            - count: 1
+              entries:
+                - keyless:
+                    subjectRegExp: "^https://github\\.com/VladFCS/golang-microservice-university/\\.github/workflows/publish-images\\.yml@refs/(heads/main|tags/v.+)$"
+                    issuer: "https://token.actions.githubusercontent.com"
+                    additionalExtensions:
+                      githubWorkflowTrigger: push
+                      githubWorkflowName: Publish Docker Images
+                      githubWorkflowRepository: VladFCS/golang-microservice-university
+                    rekor:
+                      url: https://rekor.sigstore.dev
+

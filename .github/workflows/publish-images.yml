@@ -6,11 +6,11 @@ on:
       - main
     tags:
       - "v*.*.*"
-  workflow_dispatch:
 
 permissions:
   contents: read
   packages: write
+  id-token: write
 
 jobs:
   publish:
@@ -50,6 +50,7 @@ jobs:
             type=semver,pattern={{version}}
 
       - name: Build and push image
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -59,3 +60,37 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Generate SBOM
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: image
+          image-ref: ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}-${{ matrix.service }}@${{ steps.build.outputs.digest }}
+          format: cyclonedx
+          output: sbom-${{ matrix.service }}.cdx.json
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: published-sbom-${{ matrix.service }}
+          path: sbom-${{ matrix.service }}.cdx.json
+          if-no-files-found: error
+
+      - name: Sign image with cosign keyless
+        env:
+          COSIGN_YES: "true"
+          IMAGE_REF: ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}-${{ matrix.service }}@${{ steps.build.outputs.digest }}
+        run: cosign sign "${IMAGE_REF}"
+
+      - name: Attach SBOM attestation
+        env:
+          COSIGN_YES: "true"
+          IMAGE_REF: ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}-${{ matrix.service }}@${{ steps.build.outputs.digest }}
+        run: |
+          cosign attest \
+            --type cyclonedx \
+            --predicate sbom-${{ matrix.service }}.cdx.json \
+            "${IMAGE_REF}"

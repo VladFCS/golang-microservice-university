@@ -3,8 +3,9 @@ PROTO_FILES := api/proto/catalog/v1/catalog.proto api/proto/inventory/v1/invento
 GOBIN := $(shell go env GOPATH)/bin
 IMAGE_TAG ?= dev
 GHCR_NAMESPACE ?= ghcr.io/vladfcs
+KYVERNO_VERSION ?= v1.16.2
 
-.PHONY: proto tidy build test run-gateway run-catalog run-inventory docker-build
+.PHONY: proto tidy build test run-gateway run-catalog run-inventory docker-build kyverno-install kyverno-policies-apply kyverno-demo-bad-latest kyverno-demo-bad-run-as-nonroot kyverno-demo-bad-privileged kyverno-demo-bad-hostnetwork kyverno-demo-bad-hostpath kyverno-demo-bad-no-resources kyverno-demo-unsigned kyverno-demo-signed
 
 proto:
 	go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.10
@@ -39,3 +40,33 @@ docker-build:
 	docker build -f deployments/docker/gateway-service.Dockerfile -t $(GHCR_NAMESPACE)/gateway-service:$(IMAGE_TAG) .
 	docker build -f deployments/docker/catalog-service.Dockerfile -t $(GHCR_NAMESPACE)/catalog-service:$(IMAGE_TAG) .
 	docker build -f deployments/docker/inventory-service.Dockerfile -t $(GHCR_NAMESPACE)/inventory-service:$(IMAGE_TAG) .
+
+kyverno-install:
+	kubectl apply -f https://github.com/kyverno/kyverno/releases/download/$(KYVERNO_VERSION)/install.yaml
+
+kyverno-policies-apply:
+	kubectl apply -k deploy/kyverno
+
+kyverno-demo-bad-latest:
+	kubectl apply -f deploy/kyverno/demo/bad-latest-deployment.yaml
+
+kyverno-demo-bad-run-as-nonroot:
+	kubectl apply -f deploy/kyverno/demo/bad-run-as-nonroot-deployment.yaml
+
+kyverno-demo-bad-privileged:
+	kubectl apply -f deploy/kyverno/demo/bad-privileged-deployment.yaml
+
+kyverno-demo-bad-hostnetwork:
+	kubectl apply -f deploy/kyverno/demo/bad-hostnetwork-deployment.yaml
+
+kyverno-demo-bad-hostpath:
+	kubectl apply -f deploy/kyverno/demo/bad-hostpath-deployment.yaml
+
+kyverno-demo-bad-no-resources:
+	kubectl apply -f deploy/kyverno/demo/bad-no-resources-deployment.yaml
+
+kyverno-demo-unsigned:
+	kubectl apply -f deploy/kyverno/demo/unsigned-image-deployment.yaml
+
+kyverno-demo-signed:
+	kubectl apply -f deploy/kyverno/demo/signed-image-deployment.yaml
