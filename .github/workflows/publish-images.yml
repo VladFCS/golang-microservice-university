@@ -64,20 +64,15 @@ jobs:
       - name: Install cosign
         uses: sigstore/cosign-installer@v3
 
-      - name: Install Trivy
-        run: |
-          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
-            | sudo sh -s -- -b /usr/local/bin v0.68.1
-          trivy --version
-
       - name: Generate SBOM
-        uses: aquasecurity/trivy-action@v0.33.1
-        with:
-          scan-type: image
-          image-ref: ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}-${{ matrix.service }}@${{ steps.build.outputs.digest }}
-          format: cyclonedx
-          output: sbom-${{ matrix.service }}.cdx.json
-          skip-setup-trivy: true
+        run: |
+          docker run --rm \
+            -v "$PWD:/workdir" \
+            aquasec/trivy:0.69.3 \
+            image \
+            --format cyclonedx \
+            --output /workdir/sbom-${{ matrix.service }}.cdx.json \
+            ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}-${{ matrix.service }}@${{ steps.build.outputs.digest }}
 
       - name: Upload SBOM artifact
         uses: actions/upload-artifact@v4
