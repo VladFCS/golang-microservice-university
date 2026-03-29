@@ -223,3 +223,11 @@ Kubernetes baseline included in every Deployment:
 - `runAsNonRoot: true`
 - `allowPrivilegeEscalation: false`
 - `readOnlyRootFilesystem: true`
+
+## CI
+
+GitHub Actions is used for CI/CD in this repository:
+
+- `.github/workflows/pr-ci.yml` runs on pull requests.
+- It includes `go test ./...`, `golangci-lint`, `gitleaks`, `gosec`, `govulncheck`, image builds without push, Trivy HIGH/CRITICAL gates, and CycloneDX SBOM artifacts.
+- `.github/workflows/publish-images.yml` publishes Docker images to GHCR from `main` and version tags.
