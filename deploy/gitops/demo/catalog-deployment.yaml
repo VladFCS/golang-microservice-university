@@ -27,7 +27,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: catalog-service
-          image: ghcr.io/vladfcs/golang-microservice-university-catalog-service:sha-024cc36
+          image: ghcr.io/vladfcs/golang-microservice-university-catalog-service@sha256:8709ef52f236782b8843e0fdbb4aca15aecfba1a4a423a10c1ae67ee3728a4fd
           imagePullPolicy: IfNotPresent
           env:
             - name: GRPC_PORT
