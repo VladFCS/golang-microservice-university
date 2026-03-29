@@ -129,6 +129,12 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Install Trivy
+        uses: aquasecurity/setup-trivy@v0.2.4
+        with:
+          version: v0.68.1
+          cache: true
+
       - name: Build image
         uses: docker/build-push-action@v6
         with:
@@ -147,6 +153,7 @@ jobs:
           image-ref: local/${{ matrix.service }}:${{ github.sha }}
           format: cyclonedx
           output: sbom-${{ matrix.service }}.cdx.json
+          skip-setup-trivy: true
 
       - name: Upload SBOM artifact
         if: always()
@@ -165,3 +172,4 @@ jobs:
           severity: HIGH,CRITICAL
           exit-code: 1
           ignore-unfixed: false
+          skip-setup-trivy: true
