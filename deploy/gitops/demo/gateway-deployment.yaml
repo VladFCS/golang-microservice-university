@@ -27,7 +27,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: gateway-service
-          image: ghcr.io/vladfcs/devsecops-pipeline-for-microservice-gateway-service@sha256:8351b41dd6a21352f568f8f349a995040e2f367b74c1da567d4664e5731d7367
+          image: ghcr.io/vladfcs/devsecops-pipeline-for-microservice-gateway-service@sha256:e4d4148d32b99296b78adc0c1bf73a15b064739b86ad54fbd76697df1529a006
           imagePullPolicy: IfNotPresent
           env:
             - name: HTTP_PORT

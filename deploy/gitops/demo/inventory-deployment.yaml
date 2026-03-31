@@ -27,7 +27,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: inventory-service
-          image: ghcr.io/vladfcs/devsecops-pipeline-for-microservice-inventory-service@sha256:b39d8f76c064b2bcae37aca685f1cdcfcaf8de4aedbf25f753d111e4b366b277
+          image: ghcr.io/vladfcs/devsecops-pipeline-for-microservice-inventory-service@sha256:a9221c4bf3072fda2cc0f4776b2809f83bb119fdfd108d9621597f5b7158e25c
           imagePullPolicy: IfNotPresent
           env:
             - name: GRPC_PORT
