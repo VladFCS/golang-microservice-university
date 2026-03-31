@@ -53,7 +53,7 @@ unsigned-demo-push:
 	docker buildx build --platform linux/amd64,linux/arm64 --push -f deployments/docker/gateway-service.Dockerfile -t ghcr.io/vladfcs/golang-microservice-university-gateway-service:unsigned-demo .
 
 kyverno-install:
-	kubectl apply -f https://github.com/kyverno/kyverno/releases/download/$(KYVERNO_VERSION)/install.yaml
+	kubectl apply --server-side -f https://github.com/kyverno/kyverno/releases/download/$(KYVERNO_VERSION)/install.yaml
 
 argocd-install:
 	bash scripts/argocd_install.sh
