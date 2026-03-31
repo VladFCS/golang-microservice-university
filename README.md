@@ -442,6 +442,16 @@ make demo-good
 
 The `good.yaml` manifest is expected to be allowed only if the referenced image tag has already been pushed, signed, and attested by the `Publish Docker Images` workflow.
 
+Unsigned image demo preparation:
+
+```bash
+docker login ghcr.io
+make unsigned-demo-push
+kubectl apply -f demo/unsigned.yaml
+```
+
+The `unsigned-demo-push` target deliberately publishes `ghcr.io/vladfcs/golang-microservice-university-gateway-service:unsigned-demo` without `cosign` signing so that `demo/unsigned.yaml` is rejected by `verify-signed-images`.
+
 ## Evidence
 
 This section is intended as the evidence checklist for the diploma defense. Some items below are sample or expected outputs prepared from the configured workflows and policies; capture screenshots from your own GitHub Actions runs and cluster session to turn them into final evidence.
@@ -533,7 +543,7 @@ Error from server: admission webhook "mutate.kyverno.svc" denied the request:
 resource Deployment/app/demo-unsigned was blocked due to the following policies
 
 verify-signed-images:
-  verify-signed-images: image verification failed for nginx:1.27.4: signature not found
+  verify-signed-images: image verification failed for ghcr.io/vladfcs/golang-microservice-university-gateway-service:unsigned-demo: signature not found
 ```
 
 Representative allowed deployment output:

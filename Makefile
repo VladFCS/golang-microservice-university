@@ -5,7 +5,7 @@ IMAGE_TAG ?= dev
 GHCR_NAMESPACE ?= ghcr.io/vladfcs
 KYVERNO_VERSION ?= v1.15.2
 
-.PHONY: proto tidy build test run-gateway run-catalog run-inventory docker-build minikube-up deploy kyverno-install kyverno-policies-apply kyverno-demo-bad-latest kyverno-demo-bad-run-as-nonroot kyverno-demo-bad-privileged kyverno-demo-bad-hostnetwork kyverno-demo-bad-hostpath kyverno-demo-bad-no-resources kyverno-demo-unsigned kyverno-demo-signed demo-unsigned demo-latest demo-privileged demo-hostnetwork demo-no-limits demo-good argocd-install argocd-app-apply argocd-ui argocd-admin-password argocd-status
+.PHONY: proto tidy build test run-gateway run-catalog run-inventory docker-build minikube-up deploy unsigned-demo-push kyverno-install kyverno-policies-apply kyverno-demo-bad-latest kyverno-demo-bad-run-as-nonroot kyverno-demo-bad-privileged kyverno-demo-bad-hostnetwork kyverno-demo-bad-hostpath kyverno-demo-bad-no-resources kyverno-demo-unsigned kyverno-demo-signed demo-unsigned demo-latest demo-privileged demo-hostnetwork demo-no-limits demo-good argocd-install argocd-app-apply argocd-ui argocd-admin-password argocd-status
 
 proto:
 	go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.10
@@ -48,6 +48,9 @@ minikube-up:
 deploy:
 	kubectl apply -f deploy/k8s/namespace.yaml
 	kubectl apply -k deploy/k8s
+
+unsigned-demo-push:
+	docker buildx build --platform linux/amd64,linux/arm64 --push -f deployments/docker/gateway-service.Dockerfile -t ghcr.io/vladfcs/golang-microservice-university-gateway-service:unsigned-demo .
 
 kyverno-install:
 	kubectl apply -f https://github.com/kyverno/kyverno/releases/download/$(KYVERNO_VERSION)/install.yaml

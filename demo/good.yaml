@@ -19,7 +19,14 @@ spec:
         runAsGroup: 10001
       containers:
         - name: app
-          image: ghcr.io/vladfcs/golang-microservice-university-gateway-service:sha-024cc36
+          image: ghcr.io/vladfcs/golang-microservice-university-gateway-service@sha256:fcdb21c20a0fa5e2c47b13974f925dcb9373c6002b08efcdb581b53fe697ac4c
+          env:
+            - name: CATALOG_GRPC_ADDR
+              value: "catalog-service:50051"
+            - name: INVENTORY_GRPC_ADDR
+              value: "inventory-service:50052"
+            - name: DOWNSTREAM_TIMEOUT
+              value: "3s"
           ports:
             - containerPort: 8080
           resources:
