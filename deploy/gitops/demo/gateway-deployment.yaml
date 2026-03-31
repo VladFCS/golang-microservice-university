@@ -65,6 +65,7 @@ spec:
               cpu: 250m
               memory: 128Mi
           securityContext:
+            privileged: true
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities:
