@@ -13,11 +13,12 @@ import (
 	inventoryv1 "github.com/vlad/microservices-grpc-kubernetes/gen/inventory/v1"
 	"github.com/vlad/microservices-grpc-kubernetes/internal/inventory/domain"
 	"github.com/vlad/microservices-grpc-kubernetes/internal/inventory/handler"
-	"github.com/vlad/microservices-grpc-kubernetes/internal/inventory/repository"
+	inventorypostgres "github.com/vlad/microservices-grpc-kubernetes/internal/inventory/repository/postgres"
 	"github.com/vlad/microservices-grpc-kubernetes/internal/inventory/service"
 	grpcplatform "github.com/vlad/microservices-grpc-kubernetes/internal/platform/grpcutil"
 	"github.com/vlad/microservices-grpc-kubernetes/internal/platform/health"
 	"github.com/vlad/microservices-grpc-kubernetes/internal/platform/logger"
+	platformpostgres "github.com/vlad/microservices-grpc-kubernetes/internal/platform/postgres"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
@@ -26,6 +27,22 @@ func main() {
 	log := logger.New("inventory-service")
 	grpcPort := getenv("GRPC_PORT", "50052")
 	healthPort := getenv("HEALTH_PORT", "8082")
+	databaseURL := getenv("DATABASE_URL", "postgresql://app:app@localhost:5432/microservices?sslmode=disable")
+
+	startupCtx, startupCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer startupCancel()
+
+	dbPool, err := platformpostgres.Connect(startupCtx, databaseURL)
+	if err != nil {
+		log.Error("failed to connect to postgres", slog.Any("error", err))
+		os.Exit(1)
+	}
+	defer dbPool.Close()
+
+	if err := platformpostgres.RunMigrations(startupCtx, dbPool); err != nil {
+		log.Error("failed to run postgres migrations", slog.Any("error", err))
+		os.Exit(1)
+	}
 
 	lis, err := net.Listen("tcp", ":"+grpcPort)
 	if err != nil {
@@ -33,10 +50,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	repository := repository.NewMemoryRepository([]domain.Stock{
+	repository := inventorypostgres.New(dbPool)
+	if err := repository.Seed(startupCtx, []domain.Stock{
 		{ProductID: "p-100", Available: 42, Reserved: 3},
 		{ProductID: "p-200", Available: 18, Reserved: 1},
-	})
+	}); err != nil {
+		log.Error("failed to seed inventory data", slog.Any("error", err))
+		os.Exit(1)
+	}
 	service := service.New(repository)
 	grpcHandler := handler.NewGRPCHandler(service, log)
 

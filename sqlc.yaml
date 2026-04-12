@@ -1,0 +1,18 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    schema: "internal/platform/postgres/migrations"
+    queries: "internal/catalog/repository/postgres/query.sql"
+    gen:
+      go:
+        package: "sqlc"
+        out: "internal/catalog/repository/postgres/sqlc"
+        sql_package: "pgx/v5"
+  - engine: "postgresql"
+    schema: "internal/platform/postgres/migrations"
+    queries: "internal/inventory/repository/postgres/query.sql"
+    gen:
+      go:
+        package: "sqlc"
+        out: "internal/inventory/repository/postgres/sqlc"
+        sql_package: "pgx/v5"

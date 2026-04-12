@@ -13,11 +13,12 @@ import (
 	catalogv1 "github.com/vlad/microservices-grpc-kubernetes/gen/catalog/v1"
 	"github.com/vlad/microservices-grpc-kubernetes/internal/catalog/domain"
 	"github.com/vlad/microservices-grpc-kubernetes/internal/catalog/handler"
-	"github.com/vlad/microservices-grpc-kubernetes/internal/catalog/repository"
+	catalogpostgres "github.com/vlad/microservices-grpc-kubernetes/internal/catalog/repository/postgres"
 	"github.com/vlad/microservices-grpc-kubernetes/internal/catalog/service"
 	grpcplatform "github.com/vlad/microservices-grpc-kubernetes/internal/platform/grpcutil"
 	"github.com/vlad/microservices-grpc-kubernetes/internal/platform/health"
 	"github.com/vlad/microservices-grpc-kubernetes/internal/platform/logger"
+	platformpostgres "github.com/vlad/microservices-grpc-kubernetes/internal/platform/postgres"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
@@ -26,6 +27,22 @@ func main() {
 	log := logger.New("catalog-service")
 	grpcPort := getenv("GRPC_PORT", "50051")
 	healthPort := getenv("HEALTH_PORT", "8081")
+	databaseURL := getenv("DATABASE_URL", "postgresql://app:app@localhost:5432/microservices?sslmode=disable")
+
+	startupCtx, startupCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer startupCancel()
+
+	dbPool, err := platformpostgres.Connect(startupCtx, databaseURL)
+	if err != nil {
+		log.Error("failed to connect to postgres", slog.Any("error", err))
+		os.Exit(1)
+	}
+	defer dbPool.Close()
+
+	if err := platformpostgres.RunMigrations(startupCtx, dbPool); err != nil {
+		log.Error("failed to run postgres migrations", slog.Any("error", err))
+		os.Exit(1)
+	}
 
 	lis, err := net.Listen("tcp", ":"+grpcPort)
 	if err != nil {
@@ -33,7 +50,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	repository := repository.NewMemoryRepository([]domain.Product{
+	repository := catalogpostgres.New(dbPool)
+	if err := repository.Seed(startupCtx, []domain.Product{
 		{
 			ID:          "p-100",
 			Name:        "Mechanical Keyboard",
@@ -48,7 +66,10 @@ func main() {
 			PriceCents:  5999,
 			Currency:    "USD",
 		},
-	})
+	}); err != nil {
+		log.Error("failed to seed catalog data", slog.Any("error", err))
+		os.Exit(1)
+	}
 	service := service.New(repository)
 	grpcHandler := handler.NewGRPCHandler(service, log)
 

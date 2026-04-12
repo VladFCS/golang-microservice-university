@@ -1,10 +1,10 @@
-# Go Microservices with gRPC and Docker
+# Go Microservices with gRPC, PostgreSQL and Docker
 
 This repository contains a small production-style microservices system built with Go:
 
 - `gateway-service`: HTTP API that aggregates gRPC responses.
-- `catalog-service`: product catalog with in-memory storage.
-- `inventory-service`: stock service with in-memory storage.
+- `catalog-service`: product catalog backed by PostgreSQL.
+- `inventory-service`: stock service backed by PostgreSQL.
 
 ## Repo overview
 
@@ -90,6 +90,12 @@ Proto files live in:
 make proto
 ```
 
+Generate typed SQL query code:
+
+```bash
+make sqlc
+```
+
 ## Run locally
 
 In separate terminals:
@@ -169,10 +175,17 @@ grpcurl -plaintext localhost:50052 inventory.v1.InventoryService/ReserveStock \
 ## Build and test
 
 ```bash
+make sqlc
 make tidy
 make build
 make test
 ```
+
+Persistence layer notes:
+
+- `catalog-service` and `inventory-service` use PostgreSQL for persistence.
+- `sqlc` generates the typed query layer from `sqlc.yaml`.
+- Embedded SQL migrations run automatically on service startup before gRPC serving begins.
 
 ## Docker
 
@@ -248,6 +261,8 @@ cosign verify-attestation ghcr.io/vladfcs/golang-microservice-university-gateway
 Minimal manifests for a local cluster live in:
 
 - `deploy/k8s/namespace.yaml`
+- `deploy/k8s/postgres-service.yaml`
+- `deploy/k8s/postgres-statefulset.yaml`
 - `deploy/k8s/gateway-deployment.yaml`
 - `deploy/k8s/gateway-service.yaml`
 - `deploy/k8s/catalog-deployment.yaml`
@@ -271,11 +286,15 @@ Kubernetes baseline included in every Deployment:
 - `allowPrivilegeEscalation: false`
 - `readOnlyRootFilesystem: true`
 
+The local Kustomize bundle also deploys a single-instance PostgreSQL StatefulSet and wires `catalog-service` and `inventory-service` to it through `DATABASE_URL`.
+
 ## GitOps and ArgoCD
 
 GitOps source-of-truth for the demo environment lives in:
 
 - `deploy/gitops/demo/kustomization.yaml`
+- `deploy/gitops/demo/postgres-service.yaml`
+- `deploy/gitops/demo/postgres-statefulset.yaml`
 - `deploy/gitops/demo/gateway-deployment.yaml`
 - `deploy/gitops/demo/catalog-deployment.yaml`
 - `deploy/gitops/demo/inventory-deployment.yaml`
@@ -326,7 +345,7 @@ How CI updates GitOps automatically:
 4. The workflow commits the updated GitOps manifests to `main`.
 5. ArgoCD detects the Git change and syncs namespace `demo`.
 
-That means `deploy/gitops/demo` is the desired deployment state, while `deploy/k8s` remains the simpler local-manual deployment path.
+That means `deploy/gitops/demo` is the desired deployment state, while `deploy/k8s` remains the simpler local-manual deployment path. Both deployment paths now include PostgreSQL plus service-level auto-migrations on startup.
 
 ## Kyverno
 
@@ -568,5 +587,5 @@ Optional ArgoCD evidence:
 GitHub Actions is used for CI/CD in this repository:
 
 - `.github/workflows/pr-ci.yml` runs on pull requests.
-- It includes `go test ./...`, `golangci-lint`, `gitleaks`, `gosec`, `govulncheck`, image builds without push, Trivy HIGH/CRITICAL gates, and CycloneDX SBOM artifacts.
+- It includes `sqlc generate` verification, `go test ./...`, `golangci-lint`, `gitleaks`, `gosec`, `govulncheck`, image builds without push, Trivy HIGH/CRITICAL gates, and CycloneDX SBOM artifacts.
 - `.github/workflows/publish-images.yml` publishes Docker images to GHCR from `main` and version tags.

@@ -34,6 +34,8 @@ spec:
               value: "50052"
             - name: HEALTH_PORT
               value: "8082"
+            - name: DATABASE_URL
+              value: postgresql://app:app@postgres:5432/microservices?sslmode=disable
           ports:
             - name: grpc
               containerPort: 50052

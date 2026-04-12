@@ -27,6 +27,14 @@ jobs:
           go-version-file: go.mod
           cache: true
 
+      - name: Install sqlc
+        run: go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.30.0
+
+      - name: Verify sqlc generated code
+        run: |
+          "$(go env GOPATH)/bin/sqlc" generate
+          git diff --exit-code
+
       - name: Run tests
         run: go test ./...
 

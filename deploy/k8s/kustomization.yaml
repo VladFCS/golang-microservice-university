@@ -3,10 +3,11 @@ kind: Kustomization
 namespace: app
 resources:
   - namespace.yaml
+  - postgres-service.yaml
+  - postgres-statefulset.yaml
   - gateway-deployment.yaml
   - gateway-service.yaml
   - catalog-deployment.yaml
   - catalog-service.yaml
   - inventory-deployment.yaml
   - inventory-service.yaml
-

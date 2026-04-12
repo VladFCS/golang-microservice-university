@@ -5,7 +5,7 @@ IMAGE_TAG ?= dev
 GHCR_NAMESPACE ?= ghcr.io/vladfcs
 KYVERNO_VERSION ?= v1.15.2
 
-.PHONY: proto tidy build test run-gateway run-catalog run-inventory docker-build minikube-up deploy unsigned-demo-push kyverno-install kyverno-policies-apply kyverno-demo-bad-latest kyverno-demo-bad-run-as-nonroot kyverno-demo-bad-privileged kyverno-demo-bad-hostnetwork kyverno-demo-bad-hostpath kyverno-demo-bad-no-resources kyverno-demo-unsigned kyverno-demo-signed demo-unsigned demo-latest demo-privileged demo-hostnetwork demo-no-limits demo-good argocd-install argocd-app-apply argocd-ui argocd-admin-password argocd-status
+.PHONY: proto sqlc tidy build test run-gateway run-catalog run-inventory docker-build minikube-up deploy unsigned-demo-push kyverno-install kyverno-policies-apply kyverno-demo-bad-latest kyverno-demo-bad-run-as-nonroot kyverno-demo-bad-privileged kyverno-demo-bad-hostnetwork kyverno-demo-bad-hostpath kyverno-demo-bad-no-resources kyverno-demo-unsigned kyverno-demo-signed demo-unsigned demo-latest demo-privileged demo-hostnetwork demo-no-limits demo-good argocd-install argocd-app-apply argocd-ui argocd-admin-password argocd-status
 
 proto:
 	go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.10
@@ -17,6 +17,10 @@ proto:
 		--go-grpc_out=. \
 		--go-grpc_opt=module=$(MODULE) \
 		$(PROTO_FILES)
+
+sqlc:
+	go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.30.0
+	PATH="$(GOBIN):$(PATH)" sqlc generate
 
 tidy:
 	go mod tidy
